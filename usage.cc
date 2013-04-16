@@ -58,14 +58,36 @@ void PrintUsage(std::ostream &out, const struct timespec &started) {
   out << "\treal:" << (FloatSec(current) - FloatSec(started)) << '\n';
 }
 
-struct Global {
-  Global() {
-    clock_gettime(CLOCK_MONOTONIC, &started);
+void FDWrite(int fd, const std::string &str) {
+  const char *start = str.data();
+  const char *end = start + str.size();
+  while (start != end) {
+    ssize_t ret = write(fd, start, end - start);
+    if (ret == -1) return;
+    start += ret;
   }
-  ~Global() { 
-    PrintUsage(std::cerr, started);
-  }
-  struct timespec started;
+}
+
+class Global {
+  public:
+    Global() {
+      clock_gettime(CLOCK_MONOTONIC, &started_);
+      // Some processes close stderr.
+      fd_ = dup(2);
+    }
+    ~Global() {
+      std::stringstream buf;
+      PrintUsage(buf, started_);
+      if (fd_ != -1) {
+        FDWrite(fd_, buf.str());
+        // I'm supposed to check the return value, but there's no stderr to print to!
+        (void)close(fd_);
+      }
+    }
+
+  private:
+    struct timespec started_;
+    int fd_;
 };
 const Global kGlobal;
 } // namespace
