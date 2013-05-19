@@ -25,6 +25,22 @@ const char *SkipSpaces(const char *at) {
   return at;
 }
 
+class RecordStart {
+  public:
+    RecordStart() {
+      clock_gettime(CLOCK_MONOTONIC, &started_);
+    }
+
+    const struct timespec &Started() const {
+      return started_;
+    }
+
+  private:
+    struct timespec started_;
+};
+
+const RecordStart kRecordStart;
+
 void PrintUsage(std::ostream &out) {
   // Linux doesn't set memory usage in getrusage :-(
   std::set<std::string> headers;
@@ -48,14 +64,10 @@ void PrintUsage(std::ostream &out) {
   out << "RSSMax:" << usage.ru_maxrss << " kB" << '\t';
   out << "user:" << FloatSec(usage.ru_utime) << "\tsys:" << FloatSec(usage.ru_stime) << '\t';
   out << "CPU:" << (FloatSec(usage.ru_utime) + FloatSec(usage.ru_stime));
-  // Note: caller is responsible for ending or continuing line.
-}
 
-void PrintUsage(std::ostream &out, const struct timespec &started) {
-  PrintUsage(out);
   struct timespec current;
   clock_gettime(CLOCK_MONOTONIC, &current);
-  out << "\treal:" << (FloatSec(current) - FloatSec(started)) << '\n';
+  out << "\treal:" << (FloatSec(current) - FloatSec(kRecordStart.Started())) << '\n';
 }
 
 void FDWrite(int fd, const std::string &str) {
@@ -71,13 +83,13 @@ void FDWrite(int fd, const std::string &str) {
 class Global {
   public:
     Global() {
-      clock_gettime(CLOCK_MONOTONIC, &started_);
       // Some processes close stderr.
       fd_ = dup(2);
     }
+
     ~Global() {
       std::stringstream buf;
-      PrintUsage(buf, started_);
+      PrintUsage(buf);
       if (fd_ != -1) {
         FDWrite(fd_, buf.str());
         // I'm supposed to check the return value, but there's no stderr to print to!
@@ -86,7 +98,6 @@ class Global {
     }
 
   private:
-    struct timespec started_;
     int fd_;
 };
 const Global kGlobal;
