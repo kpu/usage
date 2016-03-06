@@ -12,7 +12,7 @@ Then use it:
 ```
 You can also manually set `LD_PRELOAD` in the current shell:
 ```bash
-export LD_PRELOAD=$PWD/libusage.sh:/usr/lib64/librt.so
+export LD_PRELOAD=$PWD/libusage.so:/usr/lib64/librt.so
 cat /dev/null
 ```
 
