@@ -41,6 +41,18 @@ class RecordStart {
 
 const RecordStart kRecordStart;
 
+void PrintRUsage(std::ostream &out, const char *prefix, int who) {
+  struct rusage usage;
+  if (getrusage(who, &usage)) {
+    perror("getrusage");
+    return;
+  }
+  out << prefix << "RSSMax:" << usage.ru_maxrss << " kB" << '\t';
+  out << prefix << "user:" << FloatSec(usage.ru_utime) << '\t';
+  out << prefix << "sys:" << FloatSec(usage.ru_stime) << '\t';
+  out << prefix << "CPU:" << (FloatSec(usage.ru_utime) + FloatSec(usage.ru_stime)) << '\t';
+}
+
 void PrintUsage(std::ostream &out) {
   // Linux doesn't set memory usage in getrusage :-(
   std::set<std::string> headers;
@@ -56,18 +68,12 @@ void PrintUsage(std::ostream &out) {
     }
   }
 
-  struct rusage usage;
-  if (getrusage(RUSAGE_CHILDREN, &usage)) {
-    perror("getrusage");
-    return;
-  }
-  out << "RSSMax:" << usage.ru_maxrss << " kB" << '\t';
-  out << "user:" << FloatSec(usage.ru_utime) << "\tsys:" << FloatSec(usage.ru_stime) << '\t';
-  out << "CPU:" << (FloatSec(usage.ru_utime) + FloatSec(usage.ru_stime));
+  PrintRUsage(out, "Self", RUSAGE_SELF);
+  PrintRUsage(out, "Child", RUSAGE_CHILDREN);
 
   struct timespec current;
   clock_gettime(CLOCK_MONOTONIC, &current);
-  out << "\treal:" << (FloatSec(current) - FloatSec(kRecordStart.Started())) << '\n';
+  out << "real:" << (FloatSec(current) - FloatSec(kRecordStart.Started())) << '\n';
 }
 
 void FDWrite(int fd, const std::string &str) {
