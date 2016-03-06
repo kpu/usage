@@ -68,7 +68,7 @@ void PrintUsage(std::ostream &out) {
     }
   }
 
-  PrintRUsage(out, "Self", RUSAGE_SELF);
+  PrintRUsage(out, "", RUSAGE_SELF);
   PrintRUsage(out, "Child", RUSAGE_CHILDREN);
 
   struct timespec current;
